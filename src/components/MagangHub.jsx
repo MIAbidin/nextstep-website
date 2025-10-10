@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, MapPin, Briefcase, Users, Filter, X, Moon, Sun, Building2, GraduationCap, ChevronLeft, ChevronRight, Bookmark } from 'lucide-react';
-
+import { Search, MapPin, Briefcase, Users, Filter, X, Moon, Sun, Building2, GraduationCap, ChevronLeft, ChevronRight, Bookmark, RotateCcw } from 'lucide-react';
 const MagangHub = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [allJobs, setAllJobs] = useState([]);
@@ -125,6 +124,17 @@ const MagangHub = () => {
     setShowCompanyDropdown(false);
   };
 
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedProvinces([]);
+    setSelectedCompanies([]);
+    setSelectedProdis([]);
+    setProvinceSearch('');
+    setCompanySearch('');
+    setProdiSearch('');
+    setSortBy('newest');
+  };
+
   const toggleBookmark = (jobId) => {
     const updated = bookmarkedJobs.includes(jobId)
       ? bookmarkedJobs.filter(id => id !== jobId)
@@ -164,6 +174,27 @@ const MagangHub = () => {
     });
     return Array.from(prodiSet).sort();
   }, [allJobs, selectedProvinces, selectedCompanies]);
+
+  useEffect(() => {
+    const validSelections = selectedProvinces.filter(p => availableProvinces.includes(p));
+    if (validSelections.length !== selectedProvinces.length) {
+      setSelectedProvinces(validSelections);
+    }
+  }, [availableProvinces]);
+
+  useEffect(() => {
+    const validSelections = selectedCompanies.filter(c => availableCompanies.includes(c));
+    if (validSelections.length !== selectedCompanies.length) {
+      setSelectedCompanies(validSelections);
+    }
+  }, [availableCompanies]);
+
+  useEffect(() => {
+    const validSelections = selectedProdis.filter(p => availableProdis.includes(p));
+    if (validSelections.length !== selectedProdis.length) {
+      setSelectedProdis(validSelections);
+    }
+  }, [availableProdis]);
 
   const filteredProvinces = useMemo(() => {
     if (!provinceSearch) return availableProvinces;
@@ -340,8 +371,20 @@ const MagangHub = () => {
         <div className="max-w-7xl mx-auto px-4 mb-6">
           <div className={`${cardBg} rounded-xl p-6 shadow-lg border ${borderColor}`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Filter Pencarian</h3>
-              <button onClick={() => setShowFilters(false)}><X className="w-5 h-5" /></button>
+              <div className="flex items-center gap-4">
+                <h3 className="text-lg font-semibold">Filter Pencarian</h3>
+                <button
+                  onClick={handleResetFilters}
+                  className="flex items-center gap-1.5 text-sm text-blue-500 hover:underline"
+                  aria-label="Reset semua filter"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Reset
+                </button>
+              </div>
+              <button onClick={() => setShowFilters(false)}>
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="relative province-filter">
@@ -548,10 +591,10 @@ const MagangHub = () => {
                         </button>
                       </div>
 
-                      <h3 className="font-bold text-xl mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors" style={{ minHeight: '2.5em' }}>
+                      <h3 className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors" style={{ minHeight: '2.5em' }}>
                         {job.posisi}
                       </h3>
-                      <p className={`text-lg ${darkMode ? "text-gray-400" : "text-gray-600"} mb-4 line-clamp-1`}>
+                      <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"} mb-4 line-clamp-1`}>
                         {job.perusahaan.nama_perusahaan}
                       </p>
 
@@ -602,10 +645,10 @@ const MagangHub = () => {
                       <div className="bg-gray-200 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all duration-300 ${job.jumlah_terdaftar / job.jumlah_kuota > 4
-                              ? "bg-red-500"
-                              : job.jumlah_terdaftar / job.jumlah_kuota > 2
-                                ? "bg-yellow-500"
-                                : "bg-green-500"
+                            ? "bg-red-500"
+                            : job.jumlah_terdaftar / job.jumlah_kuota > 2
+                              ? "bg-yellow-500"
+                              : "bg-green-500"
                             }`}
                           style={{
                             width: `${Math.min(
@@ -789,7 +832,7 @@ const MagangHub = () => {
                   <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     {selectedJob.perusahaan.nama_perusahaan}
                   </p>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-200">
+                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                     <span className="flex items-center gap-1.5">
                       <MapPin className="w-4 h-4" />
                       {selectedJob.perusahaan.nama_kabupaten}, {selectedJob.perusahaan.nama_provinsi}
@@ -816,12 +859,12 @@ const MagangHub = () => {
                 <div className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-xl p-4 text-center`}>
                   <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
                   <div className="text-lg font-semibold">{selectedJob.jumlah_kuota || '-'}</div>
-                  <div className="text-sm text-gray-300">Kuota</div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Kuota</div>
                 </div>
                 <div className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-xl p-4 text-center`}>
                   <Users className="w-6 h-6 text-green-600 mx-auto mb-2" />
                   <div className="text-lg font-semibold">{selectedJob.jumlah_terdaftar || 0}</div>
-                  <div className="text-sm text-gray-300">Terdaftar</div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Terdaftar</div>
                 </div>
                 <div className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-xl p-4 text-center`}>
                   <Briefcase className="w-6 h-6 text-purple-600 mx-auto mb-2" />
@@ -830,7 +873,7 @@ const MagangHub = () => {
                       ? Math.round((selectedJob.jumlah_terdaftar / selectedJob.jumlah_kuota) * 100) + '%'
                       : '0%'}
                   </div>
-                  <div className="text-sm text-gray-300">Persaingan</div>
+                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Persaingan</div>
                 </div>
               </div>
 
@@ -872,10 +915,10 @@ const MagangHub = () => {
                   </h3>
                   <div className={`${inputBg} rounded-lg p-4 border ${borderColor}`}>
                     <p className={`mb-3 ${
-                      !selectedJob.perusahaan.deskripsi_perusahaan 
-                        ? `italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}` 
+                      !selectedJob.perusahaan.deskripsi_perusahaan
+                        ? `italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`
                         : ''
-                    }`}>
+                      }`}>
                       {selectedJob.perusahaan.deskripsi_perusahaan || 'Tidak ada deskripsi perusahaan.'}
                     </p>
                     <div className="space-y-2 text-sm border-t border-gray-200/50 pt-3 mt-3">
@@ -883,7 +926,7 @@ const MagangHub = () => {
                         <MapPin className="w-4 h-4 text-gray-400 mt-1 shrink-0" />
                         <div>
                           <p className="font-medium">Alamat</p>
-                          <p className={`${darkMode ? 'text-gray-100' : 'text-gray-500'}`}>{selectedJob.perusahaan.alamat}</p>
+                          <p className={`${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>{selectedJob.perusahaan.alamat}</p>
                         </div>
                       </div>
                     </div>
