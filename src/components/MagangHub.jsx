@@ -8,13 +8,16 @@ const MagangHub = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(24);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProvince, setSelectedProvince] = useState('');
-  const [selectedProdi, setSelectedProdi] = useState('');
+  const [selectedProvinces, setSelectedProvinces] = useState([]);
+  const [selectedProdis, setSelectedProdis] = useState([]);
+  const [selectedCompanies, setSelectedCompanies] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [provinceSearch, setProvinceSearch] = useState('');
   const [prodiSearch, setProdiSearch] = useState('');
+  const [companySearch, setCompanySearch] = useState('');
   const [showProvinceDropdown, setShowProvinceDropdown] = useState(false);
   const [showProdiDropdown, setShowProdiDropdown] = useState(false);
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [bookmarkedJobs, setBookmarkedJobs] = useState([]);
   const [sortBy, setSortBy] = useState('newest');
@@ -23,9 +26,6 @@ const MagangHub = () => {
 
   useEffect(() => {
     fetchAllJobs();
-  }, []);
-
-  useEffect(() => {
     const saved = localStorage.getItem('bookmarkedJobs');
     if (saved) {
       setBookmarkedJobs(JSON.parse(saved));
@@ -34,14 +34,13 @@ const MagangHub = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedProvince, selectedProdi, sortBy, itemsPerPage, activeTab]);
+  }, [searchQuery, selectedProvinces, selectedProdis, selectedCompanies, sortBy, itemsPerPage, activeTab]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('.province-filter') && !e.target.closest('.prodi-filter')) {
-        setShowProvinceDropdown(false);
-        setShowProdiDropdown(false);
-      }
+      if (!e.target.closest('.province-filter')) setShowProvinceDropdown(false);
+      if (!e.target.closest('.prodi-filter')) setShowProdiDropdown(false);
+      if (!e.target.closest('.company-filter')) setShowCompanyDropdown(false);
     };
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
@@ -49,59 +48,36 @@ const MagangHub = () => {
 
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && selectedJob) {
-        setSelectedJob(null);
-      }
+      if (e.key === 'Escape' && selectedJob) setSelectedJob(null);
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [selectedJob]);
 
   useEffect(() => {
+    document.body.style.overflow = selectedJob ? 'hidden' : 'unset';
     if (selectedJob) {
-      document.body.style.overflow = 'hidden';
       const modalElement = document.querySelector('[role="dialog"]');
       if (modalElement) {
-        const focusableElements = modalElement.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
+        const focusableElements = modalElement.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
-
         const handleTabKey = (e) => {
-          if (e.key === 'Tab') {
-            if (e.shiftKey && document.activeElement === firstElement) {
-              e.preventDefault();
-              lastElement?.focus();
-            } else if (!e.shiftKey && document.activeElement === lastElement) {
-              e.preventDefault();
-              firstElement?.focus();
-            }
+          if (e.key !== 'Tab') return;
+          if (e.shiftKey && document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement?.focus();
+          } else if (!e.shiftKey && document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement?.focus();
           }
         };
-
         modalElement.addEventListener('keydown', handleTabKey);
         firstElement?.focus();
-
-        return () => {
-          modalElement.removeEventListener('keydown', handleTabKey);
-        };
+        return () => modalElement.removeEventListener('keydown', handleTabKey);
       }
-    } else {
-      document.body.style.overflow = 'unset';
     }
   }, [selectedJob]);
-
-  const toggleBookmark = (jobId) => {
-    let updated;
-    if (bookmarkedJobs.includes(jobId)) {
-      updated = bookmarkedJobs.filter(id => id !== jobId);
-    } else {
-      updated = [...bookmarkedJobs, jobId];
-    }
-    setBookmarkedJobs(updated);
-    localStorage.setItem('bookmarkedJobs', JSON.stringify(updated));
-  };
 
   const fetchAllJobs = async () => {
     setLoading(true);
@@ -130,61 +106,106 @@ const MagangHub = () => {
     }
   };
 
-  const provinces = useMemo(() => {
-    const uniqueProvinces = [...new Set(allJobs.map(job => job.perusahaan?.nama_provinsi).filter(Boolean))];
-    return uniqueProvinces.sort();
-  }, [allJobs]);
+  const handleMultiSelect = (setter, prevSelected, value) => {
+    setter(prevSelected.includes(value) ? prevSelected.filter(item => item !== value) : [...prevSelected, value]);
+  };
 
-  const allProdi = useMemo(() => {
+  const handleProvinceSelect = (province) => {
+    handleMultiSelect(setSelectedProvinces, selectedProvinces, province);
+    setShowProvinceDropdown(false);
+  };
+
+  const handleProdiSelect = (prodi) => {
+    handleMultiSelect(setSelectedProdis, selectedProdis, prodi);
+    setShowProdiDropdown(false);
+  };
+
+  const handleCompanySelect = (company) => {
+    handleMultiSelect(setSelectedCompanies, selectedCompanies, company);
+    setShowCompanyDropdown(false);
+  };
+
+  const toggleBookmark = (jobId) => {
+    const updated = bookmarkedJobs.includes(jobId)
+      ? bookmarkedJobs.filter(id => id !== jobId)
+      : [...bookmarkedJobs, jobId];
+    setBookmarkedJobs(updated);
+    localStorage.setItem('bookmarkedJobs', JSON.stringify(updated));
+  };
+
+  const availableProvinces = useMemo(() => {
+    const relevantJobs = allJobs.filter(job => {
+      const matchCompany = selectedCompanies.length === 0 || selectedCompanies.includes(job.perusahaan?.nama_perusahaan);
+      const matchProdi = selectedProdis.length === 0 || parseProdi(job.program_studi).some(p => selectedProdis.includes(p.title));
+      return matchCompany && matchProdi;
+    });
+    return [...new Set(relevantJobs.map(job => job.perusahaan?.nama_provinsi).filter(Boolean))].sort();
+  }, [allJobs, selectedCompanies, selectedProdis]);
+
+  const availableCompanies = useMemo(() => {
+    const relevantJobs = allJobs.filter(job => {
+      const matchProvince = selectedProvinces.length === 0 || selectedProvinces.includes(job.perusahaan?.nama_provinsi);
+      const matchProdi = selectedProdis.length === 0 || parseProdi(job.program_studi).some(p => selectedProdis.includes(p.title));
+      return matchProvince && matchProdi;
+    });
+    return [...new Set(relevantJobs.map(job => job.perusahaan?.nama_perusahaan).filter(Boolean))].sort();
+  }, [allJobs, selectedProvinces, selectedProdis]);
+
+  const availableProdis = useMemo(() => {
+    const relevantJobs = allJobs.filter(job => {
+      const matchProvince = selectedProvinces.length === 0 || selectedProvinces.includes(job.perusahaan?.nama_provinsi);
+      const matchCompany = selectedCompanies.length === 0 || selectedCompanies.includes(job.perusahaan?.nama_perusahaan);
+      return matchProvince && matchCompany;
+    });
     const prodiSet = new Set();
-    allJobs.forEach(job => {
+    relevantJobs.forEach(job => {
       const prodis = parseProdi(job.program_studi);
       prodis.forEach(p => prodiSet.add(p.title));
     });
     return Array.from(prodiSet).sort();
-  }, [allJobs]);
+  }, [allJobs, selectedProvinces, selectedCompanies]);
 
   const filteredProvinces = useMemo(() => {
-    if (!provinceSearch) return provinces;
-    return provinces.filter(prov => 
+    if (!provinceSearch) return availableProvinces;
+    return availableProvinces.filter(prov =>
       prov.toLowerCase().includes(provinceSearch.toLowerCase())
     );
-  }, [provinces, provinceSearch]);
+  }, [availableProvinces, provinceSearch]);
+
+  const filteredCompanies = useMemo(() => {
+    if (!companySearch) return availableCompanies;
+    return availableCompanies.filter(comp =>
+      comp.toLowerCase().includes(companySearch.toLowerCase())
+    );
+  }, [availableCompanies, companySearch]);
 
   const filteredProdi = useMemo(() => {
-    if (!prodiSearch) return allProdi;
-    return allProdi.filter(prodi => 
+    if (!prodiSearch) return availableProdis;
+    return availableProdis.filter(prodi =>
       prodi.toLowerCase().includes(prodiSearch.toLowerCase())
     );
-  }, [allProdi, prodiSearch]);
+  }, [availableProdis, prodiSearch]);
 
   const filteredJobs = useMemo(() => {
-    let filtered = allJobs.filter(job => {
-      const matchSearch = !searchQuery || 
-        job.posisi.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.perusahaan?.nama_perusahaan.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchProvince = !selectedProvince || 
-        job.perusahaan?.nama_provinsi === selectedProvince;
-      
-      const matchProdi = !selectedProdi || 
-        parseProdi(job.program_studi).some(p => p.title === selectedProdi);
-      
+    let jobs = allJobs.filter(job => {
+      const matchSearch = !searchQuery || job.posisi.toLowerCase().includes(searchQuery.toLowerCase()) || job.perusahaan?.nama_perusahaan.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchProvince = selectedProvinces.length === 0 || selectedProvinces.includes(job.perusahaan?.nama_provinsi);
+      const matchProdi = selectedProdis.length === 0 || parseProdi(job.program_studi).some(p => selectedProdis.includes(p.title));
+      const matchCompany = selectedCompanies.length === 0 || selectedCompanies.includes(job.perusahaan?.nama_perusahaan);
       const matchBookmark = activeTab === 'all' || bookmarkedJobs.includes(job.id_posisi);
-      
-      return matchSearch && matchProvince && matchProdi && matchBookmark;
+      return matchSearch && matchProvince && matchProdi && matchCompany && matchBookmark;
     });
 
     if (sortBy === 'newest') {
-      filtered = filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      jobs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     } else if (sortBy === 'oldest') {
-      filtered = filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      jobs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     } else if (sortBy === 'applicants') {
-      filtered = filtered.sort((a, b) => a.jumlah_terdaftar - b.jumlah_terdaftar);
+      jobs.sort((a, b) => a.jumlah_terdaftar - b.jumlah_terdaftar);
     }
 
-    return filtered;
-  }, [allJobs, searchQuery, selectedProvince, selectedProdi, sortBy, activeTab, bookmarkedJobs]);
+    return jobs;
+  }, [allJobs, searchQuery, selectedProvinces, selectedProdis, selectedCompanies, sortBy, activeTab, bookmarkedJobs]);
 
   const paginatedJobs = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -320,140 +341,90 @@ const MagangHub = () => {
           <div className={`${cardBg} rounded-xl p-6 shadow-lg border ${borderColor}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Filter Pencarian</h3>
-              <button onClick={() => setShowFilters(false)}>
-                <X className="w-5 h-5" />
-              </button>
+              <button onClick={() => setShowFilters(false)}><X className="w-5 h-5" /></button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="relative province-filter">
                 <label className="block text-sm font-medium mb-2">Provinsi</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Cari provinsi..."
-                    value={provinceSearch}
-                    onChange={(e) => {
-                      setProvinceSearch(e.target.value);
-                      setShowProvinceDropdown(true);
-                    }}
-                    onFocus={() => setShowProvinceDropdown(true)}
-                    className={`w-full p-3 rounded-lg ${inputBg} border ${borderColor} outline-none`}
-                  />
-                  {selectedProvince && (
-                    <button
-                      onClick={() => {
-                        setSelectedProvince('');
-                        setProvinceSearch('');
-                      }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+                <input type="text" placeholder="Cari provinsi..." value={provinceSearch}
+                  onChange={(e) => { setProvinceSearch(e.target.value); setShowProvinceDropdown(true); }}
+                  onFocus={() => setShowProvinceDropdown(true)}
+                  className={`w-full p-3 rounded-lg ${inputBg} border ${borderColor} outline-none`}
+                />
                 {showProvinceDropdown && filteredProvinces.length > 0 && (
-                  <div className={`absolute z-10 w-full mt-1 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-60 overflow-y-auto`}>
+                  <div className={`absolute z-20 w-full mt-1 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-60 overflow-y-auto`}>
                     {filteredProvinces.map(prov => (
-                      <button
-                        key={prov}
-                        onClick={() => {
-                          setSelectedProvince(prov);
-                          setProvinceSearch(prov);
-                          setShowProvinceDropdown(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${
-                          selectedProvince === prov ? 'bg-blue-100 text-blue-700' : ''
-                        }`}
-                      >
-                        {prov}
-                      </button>
+                      <button key={prov} onClick={() => handleProvinceSelect(prov)}
+                        className={`w-full text-left px-4 py-2 hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${selectedProvinces.includes(prov) ? 'bg-blue-100 text-blue-700 font-semibold' : ''}`}
+                      >{prov}</button>
                     ))}
                   </div>
                 )}
-                {selectedProvince && (
-                  <div className="mt-2">
-                    <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                      {selectedProvince}
-                      <button
-                        onClick={() => {
-                          setSelectedProvince('');
-                          setProvinceSearch('');
-                        }}
-                        className="hover:bg-blue-200 rounded-full p-0.5"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedProvinces.map(prov => (
+                    <span key={prov} className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                      {prov}
+                      <button onClick={() => handleProvinceSelect(prov)} className="hover:bg-blue-200 rounded-full p-0.5"><X className="w-3 h-3" /></button>
                     </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative company-filter">
+                <label className="block text-sm font-medium mb-2">Perusahaan</label>
+                <input type="text" placeholder="Cari perusahaan..." value={companySearch}
+                  onChange={(e) => { setCompanySearch(e.target.value); setShowCompanyDropdown(true); }}
+                  onFocus={() => setShowCompanyDropdown(true)}
+                  className={`w-full p-3 rounded-lg ${inputBg} border ${borderColor} outline-none`}
+                />
+                {showCompanyDropdown && filteredCompanies.length > 0 && (
+                  <div className={`absolute z-20 w-full mt-1 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-60 overflow-y-auto`}>
+                    {filteredCompanies.map(comp => (
+                      <button key={comp} onClick={() => handleCompanySelect(comp)}
+                        className={`w-full text-left px-4 py-2 hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${selectedCompanies.includes(comp) ? 'bg-blue-100 text-blue-700 font-semibold' : ''}`}
+                      >{comp}</button>
+                    ))}
                   </div>
                 )}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedCompanies.map(comp => (
+                    <span key={comp} className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                      {comp}
+                      <button onClick={() => handleCompanySelect(comp)} className="hover:bg-blue-200 rounded-full p-0.5"><X className="w-3 h-3" /></button>
+                    </span>
+                  ))}
+                </div>
               </div>
+
               <div className="relative prodi-filter">
                 <label className="block text-sm font-medium mb-2">Program Studi</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Cari program studi..."
-                    value={prodiSearch}
-                    onChange={(e) => {
-                      setProdiSearch(e.target.value);
-                      setShowProdiDropdown(true);
-                    }}
-                    onFocus={() => setShowProdiDropdown(true)}
-                    className={`w-full p-3 rounded-lg ${inputBg} border ${borderColor} outline-none`}
-                  />
-                  {selectedProdi && (
-                    <button
-                      onClick={() => {
-                        setSelectedProdi('');
-                        setProdiSearch('');
-                      }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+                <input type="text" placeholder="Cari program studi..." value={prodiSearch}
+                  onChange={(e) => { setProdiSearch(e.target.value); setShowProdiDropdown(true); }}
+                  onFocus={() => setShowProdiDropdown(true)}
+                  className={`w-full p-3 rounded-lg ${inputBg} border ${borderColor} outline-none`}
+                />
                 {showProdiDropdown && filteredProdi.length > 0 && (
-                  <div className={`absolute z-10 w-full mt-1 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-60 overflow-y-auto`}>
+                  <div className={`absolute z-20 w-full mt-1 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-60 overflow-y-auto`}>
                     {filteredProdi.map(prodi => (
-                      <button
-                        key={prodi}
-                        onClick={() => {
-                          setSelectedProdi(prodi);
-                          setProdiSearch(prodi);
-                          setShowProdiDropdown(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${
-                          selectedProdi === prodi ? 'bg-blue-100 text-blue-700' : ''
-                        }`}
-                      >
-                        {prodi}
-                      </button>
+                      <button key={prodi} onClick={() => handleProdiSelect(prodi)}
+                        className={`w-full text-left px-4 py-2 hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${selectedProdis.includes(prodi) ? 'bg-blue-100 text-blue-700 font-semibold' : ''}`}
+                      >{prodi}</button>
                     ))}
                   </div>
                 )}
-                {selectedProdi && (
-                  <div className="mt-2">
-                    <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                      {selectedProdi}
-                      <button
-                        onClick={() => {
-                          setSelectedProdi('');
-                          setProdiSearch('');
-                        }}
-                        className="hover:bg-blue-200 rounded-full p-0.5"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedProdis.map(prodi => (
+                    <span key={prodi} className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                      {prodi}
+                      <button onClick={() => handleProdiSelect(prodi)} className="hover:bg-blue-200 rounded-full p-0.5"><X className="w-3 h-3" /></button>
                     </span>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">Urutkan</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
                   className={`w-full p-3 rounded-lg ${inputBg} border ${borderColor} outline-none`}
                 >
                   <option value="newest">Terbaru</option>
@@ -471,22 +442,20 @@ const MagangHub = () => {
           <div className={`${cardBg} rounded-xl p-2 inline-flex gap-2 shadow-md border ${borderColor}`}>
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                activeTab === 'all'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : `${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`
-              }`}
+              className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${activeTab === 'all'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : `${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`
+                }`}
             >
               <Briefcase className="w-5 h-5" />
               Semua Lowongan
             </button>
             <button
               onClick={() => setActiveTab('bookmarked')}
-              className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                activeTab === 'bookmarked'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : `${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`
-              }`}
+              className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${activeTab === 'bookmarked'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : `${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`
+                }`}
             >
               <Bookmark className="w-5 h-5" />
               Tersimpan ({bookmarkedJobs.length})
@@ -542,7 +511,7 @@ const MagangHub = () => {
               {paginatedJobs.map((job) => {
                 const prodis = parseProdi(job.program_studi);
                 const isBookmarked = bookmarkedJobs.includes(job.id_posisi);
-                
+
                 return (
                   <div
                     key={job.id_posisi}
@@ -552,10 +521,20 @@ const MagangHub = () => {
                     <div className="flex-1 flex flex-col">
                       <div className="flex items-start justify-between mb-4">
                         <img
-                          src={job.perusahaan.logo}
+                          src={
+                            job.perusahaan.logo ||
+                            `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                              job.perusahaan.nama_perusahaan
+                            )}&size=16&background=e5e7eb&color=6b7280`
+                          }
                           alt={job.perusahaan.nama_perusahaan}
-                          className="w-16 h-16 object-contain rounded-lg"
-                          onError={(e) => e.target.src = 'https://placeholdit.com/64x64/ddddee/ddddee'}
+                          className="w-16 h-16 object-contain rounded-lg bg-gray-100"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                              job.perusahaan.nama_perusahaan
+                            )}&size=16&background=e5e7eb&color=6b7280`;
+                          }}
                         />
                         <button
                           onClick={(e) => {
@@ -569,10 +548,10 @@ const MagangHub = () => {
                         </button>
                       </div>
 
-                      <h3 className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors" style={{minHeight: '2.5em'}}>
+                      <h3 className="font-bold text-xl mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors" style={{ minHeight: '2.5em' }}>
                         {job.posisi}
                       </h3>
-                      <p className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-600"} mb-4 line-clamp-1`}>
+                      <p className={`text-lg ${darkMode ? "text-gray-400" : "text-gray-600"} mb-4 line-clamp-1`}>
                         {job.perusahaan.nama_perusahaan}
                       </p>
 
@@ -589,7 +568,7 @@ const MagangHub = () => {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-start content-start gap-2 mb-4" style={{minHeight: '3.75rem'}}>
+                      <div className="flex flex-wrap items-start content-start gap-2 mb-4" style={{ minHeight: '3.75rem' }}>
                         {prodis.slice(0, 2).map((prodi, idx) => (
                           <span
                             key={idx}
@@ -606,9 +585,9 @@ const MagangHub = () => {
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="mt-auto">
-                      <p className="text-sm text-gray-300 mb-1">
+                      <p className={`text-sm mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         Persaingan:{" "}
                         {Math.min(
                           Math.round(
@@ -622,13 +601,12 @@ const MagangHub = () => {
                       </p>
                       <div className="bg-gray-200 rounded-full h-2">
                         <div
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            job.jumlah_terdaftar / job.jumlah_kuota > 4
+                          className={`h-2 rounded-full transition-all duration-300 ${job.jumlah_terdaftar / job.jumlah_kuota > 4
                               ? "bg-red-500"
                               : job.jumlah_terdaftar / job.jumlah_kuota > 2
-                              ? "bg-yellow-500"
-                              : "bg-green-500"
-                          }`}
+                                ? "bg-yellow-500"
+                                : "bg-green-500"
+                            }`}
                           style={{
                             width: `${Math.min(
                               job.jumlah_kuota > 0
@@ -661,7 +639,7 @@ const MagangHub = () => {
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                
+
                 <div className="hidden sm:flex items-center gap-2">
                   {(() => {
                     const pages = [];
@@ -676,7 +654,7 @@ const MagangHub = () => {
                         startPage = totalPages - 4;
                       }
                     }
-                    
+
                     if (startPage > 1) {
                       pages.push(
                         <button
@@ -691,22 +669,21 @@ const MagangHub = () => {
                         pages.push(<span key="dots1" className="px-1 text-gray-500">...</span>);
                       }
                     }
-                    
+
                     for (let i = startPage; i <= endPage; i++) {
                       pages.push(
                         <button
                           key={i}
                           onClick={() => setCurrentPage(i)}
-                          className={`w-10 h-10 rounded-lg transition-all ${
-                            currentPage === i ? 'bg-blue-600 text-white' : `${inputBg} hover:bg-blue-100`
-                          }`}
+                          className={`w-10 h-10 rounded-lg transition-all ${currentPage === i ? 'bg-blue-600 text-white' : `${inputBg} hover:bg-blue-100`
+                            }`}
                           aria-current={currentPage === i ? 'page' : undefined}
                         >
                           {i}
                         </button>
                       );
                     }
-                    
+
                     if (endPage < totalPages) {
                       if (endPage < totalPages - 1) {
                         pages.push(<span key="dots2" className="px-1 text-gray-500">...</span>);
@@ -721,7 +698,7 @@ const MagangHub = () => {
                         </button>
                       );
                     }
-                    
+
                     return pages;
                   })()}
                 </div>
@@ -759,19 +736,30 @@ const MagangHub = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative h-48">
-              <img
-                src={selectedJob.perusahaan.banner}
-                alt="Banner Perusahaan"
-                className="w-full h-full object-cover rounded-t-2xl"
-                onError={(e) => {
-                  const parent = e.target.parentNode;
-                  e.target.style.display = 'none';
-                  parent.style.background = 'linear-gradient(to right, #3b82f6, #8b5cf6)';
-                }}
-              />
+              {
+                selectedJob.perusahaan.banner ? (
+                  <img
+                    src={selectedJob.perusahaan.banner}
+                    alt="Banner Perusahaan"
+                    className="w-full h-full object-cover rounded-t-2xl"
+                    onError={(e) => {
+                      const parent = e.target.parentNode;
+                      e.target.style.display = 'none';
+                      if (parent) {
+                        parent.style.background = 'linear-gradient(to right, #3b82f6, #8b5cf6)';
+                      }
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full rounded-t-2xl"
+                    style={{ background: 'linear-gradient(to right, #3b82f6, #8b5cf6)' }}
+                  ></div>
+                )
+              }
               <button
                 onClick={() => setSelectedJob(null)}
-                className="absolute top-4 right-4 p-2 bg-black/40 text-white rounded-full shadow-lg hover:bg-black/60 transition-all"
+                className="absolute top-4 right-4 p-2 bg-black/40 text-white rounded-full shadow-lg hover:bg-black/60 transition-all z-10"
                 aria-label="Tutup modal"
               >
                 <X className="w-5 h-5" />
@@ -781,10 +769,20 @@ const MagangHub = () => {
             <div className="p-8">
               <div className="flex flex-col sm:flex-row items-start gap-4 mb-6">
                 <img
-                  src={selectedJob.perusahaan?.logo} 
+                  src={
+                    selectedJob.perusahaan?.logo ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      selectedJob.perusahaan.nama_perusahaan
+                    )}&background=e5e7eb&color=6b7280`
+                  }
                   alt={selectedJob.perusahaan.nama_perusahaan}
                   className="w-20 h-20 object-contain rounded-lg border border-gray-200 flex-shrink-0"
-                  onError={(e) => e.target.src = 'https://placeholdit.com/80x80/ddddee/ddddee'}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      selectedJob.perusahaan.nama_perusahaan
+                    )}&background=e5e7eb&color=6b7280`;
+                  }}
                 />
                 <div className="flex-1">
                   <h2 id="modal-title" className="text-2xl font-bold mb-2">{selectedJob.posisi}</h2>
@@ -804,7 +802,7 @@ const MagangHub = () => {
                     bookmarkedJobs.includes(selectedJob.id_posisi)
                       ? 'bg-yellow-100 text-yellow-600'
                       : `bg-gray-100 text-gray-400 ${darkMode ? 'bg-gray-700 text-gray-400 hover:bg-gray-600' : 'hover:bg-gray-200'}`
-                  }`}
+                    }`}
                   aria-label={bookmarkedJobs.includes(selectedJob.id_posisi) ? 'Hapus dari simpanan' : 'Simpan lowongan'}
                 >
                   <Bookmark
@@ -873,7 +871,11 @@ const MagangHub = () => {
                     Tentang Perusahaan
                   </h3>
                   <div className={`${inputBg} rounded-lg p-4 border ${borderColor}`}>
-                    <p className={`mb-3 ${!selectedJob.perusahaan.deskripsi_perusahaan ? 'italic text-gray-300' : ''}`}>
+                    <p className={`mb-3 ${
+                      !selectedJob.perusahaan.deskripsi_perusahaan 
+                        ? `italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}` 
+                        : ''
+                    }`}>
                       {selectedJob.perusahaan.deskripsi_perusahaan || 'Tidak ada deskripsi perusahaan.'}
                     </p>
                     <div className="space-y-2 text-sm border-t border-gray-200/50 pt-3 mt-3">
@@ -881,7 +883,7 @@ const MagangHub = () => {
                         <MapPin className="w-4 h-4 text-gray-400 mt-1 shrink-0" />
                         <div>
                           <p className="font-medium">Alamat</p>
-                          <p className={`${darkMode ? 'text-gray-100' : 'text-gray-300'}`}>{selectedJob.perusahaan.alamat}</p>
+                          <p className={`${darkMode ? 'text-gray-100' : 'text-gray-500'}`}>{selectedJob.perusahaan.alamat}</p>
                         </div>
                       </div>
                     </div>
