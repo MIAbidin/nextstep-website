@@ -48,16 +48,23 @@ const MagangHub = () => {
 
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && selectedJob) setSelectedJob(null);
+      if (e.key !== 'Escape') return;
+      if (selectedJob) {
+        setSelectedJob(null);
+      } else if (showDisclaimer) {
+        setShowDisclaimer(false);
+      }
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [selectedJob]);
+  }, [selectedJob, showDisclaimer]);
 
   useEffect(() => {
-    document.body.style.overflow = selectedJob ? 'hidden' : 'unset';
+    const isModalOpen = selectedJob || showDisclaimer;
+    document.body.style.overflow = isModalOpen ? 'hidden' : 'unset';
+
     if (selectedJob) {
-      const modalElement = document.querySelector('[role="dialog"]');
+      const modalElement = document.querySelector('[aria-labelledby="modal-title"]');
       if (modalElement) {
         const focusableElements = modalElement.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
         const firstElement = focusableElements[0];
@@ -77,7 +84,7 @@ const MagangHub = () => {
         return () => modalElement.removeEventListener('keydown', handleTabKey);
       }
     }
-  }, [selectedJob]);
+  }, [selectedJob, showDisclaimer]);
 
   const fetchAllJobs = async () => {
     setLoading(true);
@@ -112,17 +119,14 @@ const MagangHub = () => {
 
   const handleProvinceSelect = (province) => {
     handleMultiSelect(setSelectedProvinces, selectedProvinces, province);
-    setShowProvinceDropdown(false);
   };
 
   const handleProdiSelect = (prodi) => {
     handleMultiSelect(setSelectedProdis, selectedProdis, prodi);
-    setShowProdiDropdown(false);
   };
 
   const handleCompanySelect = (company) => {
     handleMultiSelect(setSelectedCompanies, selectedCompanies, company);
-    setShowCompanyDropdown(false);
   };
 
   const handleResetFilters = () => {
@@ -286,33 +290,6 @@ const MagangHub = () => {
       <section className="relative overflow-hidden py-16 px-4">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10"></div>
         <div className="max-w-7xl mx-auto relative z-10">
-          {showDisclaimer && (
-            <div className={`${cardBg} rounded-xl p-6 mb-8 shadow-lg border-l-4 border-blue-600 animate-fadeIn`}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold mb-3 text-blue-600">ℹ️ Disclaimer</h3>
-                  <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} space-y-2`}>
-                    <p>
-                      Website <strong>NextStep</strong> dibuat untuk memudahkan pengguna dalam mencari dan memilih lowongan magang yang sesuai dengan minat, lokasi, dan bidang keahlian.
-                    </p>
-                    <p>
-                      Seluruh data lowongan bersumber dari situs resmi <strong>Kementerian Ketenagakerjaan Republik Indonesia</strong> dan ditampilkan secara informatif untuk kemudahan akses.
-                    </p>
-                    <p className="text-xs italic">
-                      Website ini tidak berafiliasi dengan Kemnaker RI dan dibuat semata-mata untuk tujuan edukasi dan kemudahan akses informasi.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowDisclaimer(false)}
-                  className={`p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-all flex-shrink-0`}
-                  aria-label="Tutup disclaimer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          )}
           <div className="text-center mb-8">
             <h2 className="text-4xl md:text-5xl font-bold mb-4 animate-fadeIn" style={{ animationDelay: '100ms' }}>
               Temukan Peluang Magang Impianmu
@@ -556,6 +533,21 @@ const MagangHub = () => {
                 const prodis = parseProdi(job.program_studi);
                 const isBookmarked = bookmarkedJobs.includes(job.id_posisi);
 
+                const peluangPersen = job.jumlah_terdaftar > 0
+                  ? (job.jumlah_kuota / job.jumlah_terdaftar) * 100
+                  : (job.jumlah_kuota > 0 ? 100 : 0);
+
+                let namaPeluang;
+                if (peluangPersen >= 75) {
+                  namaPeluang = "Sangat Tinggi";
+                } else if (peluangPersen >= 50) {
+                  namaPeluang = "Tinggi";
+                } else if (peluangPersen >= 25) {
+                  namaPeluang = "Sedang";
+                } else {
+                  namaPeluang = "Rendah";
+                }
+
                 return (
                   <div
                     key={job.id_posisi}
@@ -633,16 +625,7 @@ const MagangHub = () => {
 
                     <div className="mt-auto">
                       <p className={`text-sm mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Persaingan:{" "}
-                        {Math.min(
-                          Math.round(
-                            job.jumlah_kuota > 0
-                              ? (job.jumlah_terdaftar / job.jumlah_kuota) * 100
-                              : 0
-                          ),
-                          999
-                        )}
-                        %
+                        Peluang: <strong>{Math.round(peluangPersen)}%</strong> ({namaPeluang})
                       </p>
                       <div className="bg-gray-200 rounded-full h-2">
                         <div
@@ -867,15 +850,34 @@ const MagangHub = () => {
                   <div className="text-lg font-semibold">{selectedJob.jumlah_terdaftar || 0}</div>
                   <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Terdaftar</div>
                 </div>
-                <div className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-xl p-4 text-center`}>
-                  <Briefcase className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                  <div className="text-lg font-semibold">
-                    {selectedJob.jumlah_kuota
-                      ? Math.round((selectedJob.jumlah_terdaftar / selectedJob.jumlah_kuota) * 100) + '%'
-                      : '0%'}
-                  </div>
-                  <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Persaingan</div>
-                </div>
+                {(() => {
+                  const peluangPersen = selectedJob.jumlah_terdaftar > 0
+                    ? (selectedJob.jumlah_kuota / selectedJob.jumlah_terdaftar) * 100
+                    : (selectedJob.jumlah_kuota > 0 ? 100 : 0);
+
+                  let namaPeluang;
+                  if (peluangPersen >= 75) {
+                    namaPeluang = "Sangat Tinggi";
+                  } else if (peluangPersen >= 50) {
+                    namaPeluang = "Tinggi";
+                  } else if (peluangPersen >= 25) {
+                    namaPeluang = "Sedang";
+                  } else {
+                    namaPeluang = "Rendah";
+                  }
+
+                  return (
+                    <div className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-xl p-4 text-center`}>
+                      <Briefcase className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                      <div className="text-lg font-semibold">
+                        {Math.round(peluangPersen)}%
+                      </div>
+                      <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Peluang ({namaPeluang})
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="space-y-6">
@@ -932,6 +934,44 @@ const MagangHub = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDisclaimer && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4 animate-fadeIn"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="disclaimer-title"
+        >
+          <div
+            className={`${cardBg} rounded-xl shadow-lg p-6 sm:p-8 relative max-w-2xl w-full animate-scaleUp`}
+          >
+            <button
+              onClick={() => setShowDisclaimer(false)}
+              className={`absolute top-4 right-4 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'} transition-all`}
+              aria-label="Tutup disclaimer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex-1">
+              <h3 id="disclaimer-title" className="text-xl font-bold mb-4 text-blue-600 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                Disclaimer
+              </h3>
+              <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} space-y-3`}>
+                <p>
+                  Selamat datang di <strong>NextStep</strong>! Platform ini dibuat untuk membantu Anda mencari dan memilih lowongan magang yang sesuai dengan minat, lokasi, dan keahlian Anda.
+                </p>
+                <p>
+                  Seluruh data lowongan yang ditampilkan bersumber langsung dari situs resmi <strong>Kementerian Ketenagakerjaan Republik Indonesia (Kemnaker RI)</strong>.
+                </p>
+                <p className="text-xs italic mt-4 p-3 bg-gray-800 text-white dark:bg-gray-700/50 rounded-lg">
+                  Harap dicatat bahwa website ini <strong className="font-bold">tidak berafiliasi</strong> secara resmi dengan Kemnaker RI dan dikembangkan semata-mata untuk tujuan edukasi serta mempermudah akses informasi lowongan magang.
+                </p>
               </div>
             </div>
           </div>
