@@ -12,10 +12,10 @@ export const metadata = {
     title: 'NextStep - Platform Lowongan Magang',
     description: 'NextStep dibuat untuk memudahkan pengguna mencari lowongan magang sesuai minat, lokasi, dan bidang keahlian.',
     type: 'website',
-    url: 'https://nextstep.id',
+    url: 'https://nextstep-web.vercel.app/',
     images: [
       {
-        url: 'https://nextstep.id/preview.png',
+        url: 'https://nextstep-web.vercel.app/preview.png',
         width: 1200,
         height: 630,
         alt: 'NextStep - Platform Lowongan Magang',
@@ -31,7 +31,7 @@ export const metadata = {
     site: '@MIAbidin',
     title: 'NextStep - Platform Lowongan Magang',
     description: 'NextStep dibuat untuk memudahkan pengguna mencari lowongan magang sesuai minat, lokasi, dan bidang keahlian.',
-    images: ['https://nextstep.id/preview.png'],
+    images: ['https://nextstep-web.vercel.app/preview.png'],
   },
   
   // Robots
