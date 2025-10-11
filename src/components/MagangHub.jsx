@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, MapPin, Briefcase, Users, Filter, X, Moon, Sun, Building2, GraduationCap, ChevronLeft, ChevronRight, Bookmark, RotateCcw } from 'lucide-react';
+
 const MagangHub = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [allJobs, setAllJobs] = useState([]);
@@ -274,7 +275,7 @@ const MagangHub = () => {
             </div>
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-lg ${inputBg} hover:bg-opacity-80 transition-all`}
+              className={`p-2 rounded-lg ${inputBg} hover:bg-opacity-80 transition-all hover:scale-110 active:scale-100`}
             >
               {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
@@ -286,7 +287,7 @@ const MagangHub = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10"></div>
         <div className="max-w-7xl mx-auto relative z-10">
           {showDisclaimer && (
-            <div className={`${cardBg} rounded-xl p-6 mb-8 shadow-lg border-l-4 border-blue-600`}>
+            <div className={`${cardBg} rounded-xl p-6 mb-8 shadow-lg border-l-4 border-blue-600 animate-fadeIn`}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <h3 className="text-lg font-bold mb-3 text-blue-600">ℹ️ Disclaimer</h3>
@@ -313,18 +314,18 @@ const MagangHub = () => {
             </div>
           )}
           <div className="text-center mb-8">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 animate-fadeIn" style={{ animationDelay: '100ms' }}>
               Temukan Peluang Magang Impianmu
             </h2>
-            <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'} animate-fadeIn`} style={{ animationDelay: '200ms' }}>
               Langkah kecil hari ini bisa jadi awal karier besar di masa depan
             </p>
-            <p className={`text-base mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className={`text-base mt-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'} animate-fadeIn`} style={{ animationDelay: '300ms' }}>
               Semoga sukses bersama
             </p>
           </div>
 
-          <div className={`max-w-3xl mx-auto ${cardBg} rounded-2xl shadow-xl p-2`}>
+          <div className={`max-w-3xl mx-auto ${cardBg} rounded-2xl shadow-xl p-2 animate-fadeIn`} style={{ animationDelay: '400ms' }}>
             <div className="flex gap-2">
               <div className="flex-1 flex items-center gap-2 px-4">
                 <Search className="w-5 h-5 text-gray-400" />
@@ -339,7 +340,7 @@ const MagangHub = () => {
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2"
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 hover:scale-105 active:scale-100"
               >
                 <Filter className="w-5 h-5" />
                 Filter
@@ -348,17 +349,17 @@ const MagangHub = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-            <div className={`${cardBg} rounded-xl p-6 text-center shadow-lg`}>
+            <div className={`${cardBg} rounded-xl p-6 text-center shadow-lg animate-fadeIn`} style={{ animationDelay: '500ms' }}>
               <Briefcase className="w-8 h-8 text-blue-600 mx-auto mb-2" />
               <div className="text-3xl font-bold text-blue-600">{stats.totalJobs.toLocaleString()}</div>
               <div className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Lowongan Aktif</div>
             </div>
-            <div className={`${cardBg} rounded-xl p-6 text-center shadow-lg`}>
+            <div className={`${cardBg} rounded-xl p-6 text-center shadow-lg animate-fadeIn`} style={{ animationDelay: '600ms' }}>
               <Building2 className="w-8 h-8 text-purple-600 mx-auto mb-2" />
               <div className="text-3xl font-bold text-purple-600">{stats.totalCompanies}</div>
               <div className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Perusahaan</div>
             </div>
-            <div className={`${cardBg} rounded-xl p-6 text-center shadow-lg`}>
+            <div className={`${cardBg} rounded-xl p-6 text-center shadow-lg animate-fadeIn`} style={{ animationDelay: '700ms' }}>
               <Users className="w-8 h-8 text-green-600 mx-auto mb-2" />
               <div className="text-3xl font-bold text-green-600">{stats.totalApplicants.toLocaleString()}</div>
               <div className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Pendaftar</div>
@@ -369,7 +370,7 @@ const MagangHub = () => {
 
       {showFilters && (
         <div className="max-w-7xl mx-auto px-4 mb-6">
-          <div className={`${cardBg} rounded-xl p-6 shadow-lg border ${borderColor}`}>
+          <div className={`${cardBg} rounded-xl p-6 shadow-lg border ${borderColor} animate-slideDownFadeIn`}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
                 <h3 className="text-lg font-semibold">Filter Pencarian</h3>
@@ -486,8 +487,8 @@ const MagangHub = () => {
             <button
               onClick={() => setActiveTab('all')}
               className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${activeTab === 'all'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : `${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : `${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`
                 }`}
             >
               <Briefcase className="w-5 h-5" />
@@ -496,8 +497,8 @@ const MagangHub = () => {
             <button
               onClick={() => setActiveTab('bookmarked')}
               className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${activeTab === 'bookmarked'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : `${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : `${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`
                 }`}
             >
               <Bookmark className="w-5 h-5" />
@@ -551,14 +552,15 @@ const MagangHub = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {paginatedJobs.map((job) => {
+              {paginatedJobs.map((job, i) => {
                 const prodis = parseProdi(job.program_studi);
                 const isBookmarked = bookmarkedJobs.includes(job.id_posisi);
 
                 return (
                   <div
                     key={job.id_posisi}
-                    className={`${cardBg} rounded-xl shadow-lg hover:shadow-xl transition-all p-6 cursor-pointer border ${borderColor} hover:border-blue-500 group flex flex-col justify-between h-full min-h-[400px]`}
+                    className={`${cardBg} rounded-xl shadow-lg hover:shadow-xl transition-all p-6 cursor-pointer border ${borderColor} hover:border-blue-500 group flex flex-col justify-between h-full min-h-[400px] hover:scale-[1.03] hover:-translate-y-1.5`}
+                    style={{ animation: `fadeIn 0.5s ease-out ${i * 75}ms backwards` }}
                     onClick={() => setSelectedJob(job)}
                   >
                     <div className="flex-1 flex flex-col">
@@ -645,10 +647,10 @@ const MagangHub = () => {
                       <div className="bg-gray-200 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all duration-300 ${job.jumlah_terdaftar / job.jumlah_kuota > 4
-                            ? "bg-red-500"
-                            : job.jumlah_terdaftar / job.jumlah_kuota > 2
-                              ? "bg-yellow-500"
-                              : "bg-green-500"
+                              ? "bg-red-500"
+                              : job.jumlah_terdaftar / job.jumlah_kuota > 2
+                                ? "bg-yellow-500"
+                                : "bg-green-500"
                             }`}
                           style={{
                             width: `${Math.min(
@@ -768,14 +770,14 @@ const MagangHub = () => {
 
       {selectedJob && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 animate-fadeIn"
           onClick={() => setSelectedJob(null)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"
         >
           <div
-            className={`${cardBg} rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto`}
+            className={`${cardBg} rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-scaleUp`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative h-48">
@@ -841,8 +843,7 @@ const MagangHub = () => {
                 </div>
                 <button
                   onClick={() => toggleBookmark(selectedJob.id_posisi)}
-                  className={`p-3 rounded-lg transition-all ${
-                    bookmarkedJobs.includes(selectedJob.id_posisi)
+                  className={`p-3 rounded-lg transition-all ${bookmarkedJobs.includes(selectedJob.id_posisi)
                       ? 'bg-yellow-100 text-yellow-600'
                       : `bg-gray-100 text-gray-400 ${darkMode ? 'bg-gray-700 text-gray-400 hover:bg-gray-600' : 'hover:bg-gray-200'}`
                     }`}
@@ -914,8 +915,7 @@ const MagangHub = () => {
                     Tentang Perusahaan
                   </h3>
                   <div className={`${inputBg} rounded-lg p-4 border ${borderColor}`}>
-                    <p className={`mb-3 ${
-                      !selectedJob.perusahaan.deskripsi_perusahaan
+                    <p className={`mb-3 ${!selectedJob.perusahaan.deskripsi_perusahaan
                         ? `italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`
                         : ''
                       }`}>
