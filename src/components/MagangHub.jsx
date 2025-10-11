@@ -415,15 +415,18 @@ const MagangHub = () => {
                 <h3 className="text-lg font-semibold">Filter Pencarian</h3>
                 <button
                   onClick={handleResetFilters}
-                  className="flex items-center gap-1.5 text-sm text-blue-500 hover:underline"
+                  className="group flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-200 hover:shadow-sm active:scale-95"
                   aria-label="Reset semua filter"
                 >
-                  <RotateCcw className="w-4 h-4" />
-                  Reset
+                  <RotateCcw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
+                  <span>Reset Filter</span>
                 </button>
               </div>
-              <button onClick={() => setShowFilters(false)}>
-                <X className="w-5 h-5" />
+              <button 
+                onClick={() => setShowFilters(false)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              >
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
