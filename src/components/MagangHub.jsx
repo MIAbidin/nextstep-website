@@ -9,13 +9,16 @@ const MagangHub = () => {
   const [itemsPerPage, setItemsPerPage] = useState(24);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProvinces, setSelectedProvinces] = useState([]);
+  const [selectedKabupatens, setSelectedKabupatens] = useState([]);
   const [selectedProdis, setSelectedProdis] = useState([]);
   const [selectedCompanies, setSelectedCompanies] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [provinceSearch, setProvinceSearch] = useState('');
+  const [kabupatenSearch, setKabupatenSearch] = useState('');
   const [prodiSearch, setProdiSearch] = useState('');
   const [companySearch, setCompanySearch] = useState('');
   const [showProvinceDropdown, setShowProvinceDropdown] = useState(false);
+  const [showKabupatenDropdown, setShowKabupatenDropdown] = useState(false);
   const [showProdiDropdown, setShowProdiDropdown] = useState(false);
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -23,6 +26,7 @@ const MagangHub = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [activeTab, setActiveTab] = useState('all');
   const [showDisclaimer, setShowDisclaimer] = useState(true);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   useEffect(() => {
     fetchAllJobs();
@@ -34,11 +38,12 @@ const MagangHub = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedProvinces, selectedProdis, selectedCompanies, sortBy, itemsPerPage, activeTab]);
+  }, [searchQuery, selectedProvinces, selectedKabupatens, selectedProdis, selectedCompanies, sortBy, itemsPerPage, activeTab]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (!e.target.closest('.province-filter')) setShowProvinceDropdown(false);
+      if (!e.target.closest('.kabupaten-filter')) setShowKabupatenDropdown(false);
       if (!e.target.closest('.prodi-filter')) setShowProdiDropdown(false);
       if (!e.target.closest('.company-filter')) setShowCompanyDropdown(false);
     };
@@ -53,6 +58,11 @@ const MagangHub = () => {
         setSelectedJob(null);
       } else if (showDisclaimer) {
         setShowDisclaimer(false);
+      } else {
+        setShowProvinceDropdown(false);
+        setShowKabupatenDropdown(false);
+        setShowCompanyDropdown(false);
+        setShowProdiDropdown(false);
       }
     };
     document.addEventListener('keydown', handleEscape);
@@ -119,22 +129,36 @@ const MagangHub = () => {
 
   const handleProvinceSelect = (province) => {
     handleMultiSelect(setSelectedProvinces, selectedProvinces, province);
+    setProvinceSearch('');
+    setShowProvinceDropdown(false);
+  };
+
+  const handleKabupatenSelect = (kabupaten) => {
+    handleMultiSelect(setSelectedKabupatens, selectedKabupatens, kabupaten);
+    setKabupatenSearch('');
+    setShowKabupatenDropdown(false);
   };
 
   const handleProdiSelect = (prodi) => {
     handleMultiSelect(setSelectedProdis, selectedProdis, prodi);
+    setProdiSearch('');
+    setShowProdiDropdown(false);
   };
 
   const handleCompanySelect = (company) => {
     handleMultiSelect(setSelectedCompanies, selectedCompanies, company);
+    setCompanySearch('');
+    setShowCompanyDropdown(false);
   };
 
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelectedProvinces([]);
+    setSelectedKabupatens([]);
     setSelectedCompanies([]);
     setSelectedProdis([]);
     setProvinceSearch('');
+    setKabupatenSearch('');
     setCompanySearch('');
     setProdiSearch('');
     setSortBy('newest');
@@ -157,20 +181,32 @@ const MagangHub = () => {
     return [...new Set(relevantJobs.map(job => job.perusahaan?.nama_provinsi).filter(Boolean))].sort();
   }, [allJobs, selectedCompanies, selectedProdis]);
 
+  const availableKabupatens = useMemo(() => {
+    const relevantJobs = allJobs.filter(job => {
+      const matchProvince = selectedProvinces.length === 0 || selectedProvinces.includes(job.perusahaan?.nama_provinsi);
+      const matchCompany = selectedCompanies.length === 0 || selectedCompanies.includes(job.perusahaan?.nama_perusahaan);
+      const matchProdi = selectedProdis.length === 0 || parseProdi(job.program_studi).some(p => selectedProdis.includes(p.title));
+      return matchProvince && matchCompany && matchProdi;
+    });
+    return [...new Set(relevantJobs.map(job => job.perusahaan?.nama_kabupaten).filter(Boolean))].sort();
+  }, [allJobs, selectedProvinces, selectedCompanies, selectedProdis]);
+
   const availableCompanies = useMemo(() => {
     const relevantJobs = allJobs.filter(job => {
       const matchProvince = selectedProvinces.length === 0 || selectedProvinces.includes(job.perusahaan?.nama_provinsi);
+      const matchKabupaten = selectedKabupatens.length === 0 || selectedKabupatens.includes(job.perusahaan?.nama_kabupaten);
       const matchProdi = selectedProdis.length === 0 || parseProdi(job.program_studi).some(p => selectedProdis.includes(p.title));
-      return matchProvince && matchProdi;
+      return matchProvince && matchKabupaten && matchProdi;
     });
     return [...new Set(relevantJobs.map(job => job.perusahaan?.nama_perusahaan).filter(Boolean))].sort();
-  }, [allJobs, selectedProvinces, selectedProdis]);
+  }, [allJobs, selectedProvinces, selectedKabupatens, selectedProdis]);
 
   const availableProdis = useMemo(() => {
     const relevantJobs = allJobs.filter(job => {
       const matchProvince = selectedProvinces.length === 0 || selectedProvinces.includes(job.perusahaan?.nama_provinsi);
+      const matchKabupaten = selectedKabupatens.length === 0 || selectedKabupatens.includes(job.perusahaan?.nama_kabupaten);
       const matchCompany = selectedCompanies.length === 0 || selectedCompanies.includes(job.perusahaan?.nama_perusahaan);
-      return matchProvince && matchCompany;
+      return matchProvince && matchKabupaten && matchCompany;
     });
     const prodiSet = new Set();
     relevantJobs.forEach(job => {
@@ -178,7 +214,7 @@ const MagangHub = () => {
       prodis.forEach(p => prodiSet.add(p.title));
     });
     return Array.from(prodiSet).sort();
-  }, [allJobs, selectedProvinces, selectedCompanies]);
+  }, [allJobs, selectedProvinces, selectedKabupatens, selectedCompanies]);
 
   useEffect(() => {
     const validSelections = selectedProvinces.filter(p => availableProvinces.includes(p));
@@ -186,6 +222,13 @@ const MagangHub = () => {
       setSelectedProvinces(validSelections);
     }
   }, [availableProvinces]);
+
+  useEffect(() => {
+    const validSelections = selectedKabupatens.filter(k => availableKabupatens.includes(k));
+    if (validSelections.length !== selectedKabupatens.length) {
+      setSelectedKabupatens(validSelections);
+    }
+  }, [availableKabupatens]);
 
   useEffect(() => {
     const validSelections = selectedCompanies.filter(c => availableCompanies.includes(c));
@@ -201,35 +244,20 @@ const MagangHub = () => {
     }
   }, [availableProdis]);
 
-  const filteredProvinces = useMemo(() => {
-    if (!provinceSearch) return availableProvinces;
-    return availableProvinces.filter(prov =>
-      prov.toLowerCase().includes(provinceSearch.toLowerCase())
-    );
-  }, [availableProvinces, provinceSearch]);
-
-  const filteredCompanies = useMemo(() => {
-    if (!companySearch) return availableCompanies;
-    return availableCompanies.filter(comp =>
-      comp.toLowerCase().includes(companySearch.toLowerCase())
-    );
-  }, [availableCompanies, companySearch]);
-
-  const filteredProdi = useMemo(() => {
-    if (!prodiSearch) return availableProdis;
-    return availableProdis.filter(prodi =>
-      prodi.toLowerCase().includes(prodiSearch.toLowerCase())
-    );
-  }, [availableProdis, prodiSearch]);
+  const filteredProvinces = useMemo(() => availableProvinces.filter(prov => prov.toLowerCase().includes(provinceSearch.toLowerCase())), [availableProvinces, provinceSearch]);
+  const filteredCompanies = useMemo(() => availableCompanies.filter(comp => comp.toLowerCase().includes(companySearch.toLowerCase())), [availableCompanies, companySearch]);
+  const filteredProdi = useMemo(() => availableProdis.filter(prodi => prodi.toLowerCase().includes(prodiSearch.toLowerCase())), [availableProdis, prodiSearch]);
+  const filteredKabupatens = useMemo(() => availableKabupatens.filter(kab => kab.toLowerCase().includes(kabupatenSearch.toLowerCase())), [availableKabupatens, kabupatenSearch]);
 
   const filteredJobs = useMemo(() => {
     let jobs = allJobs.filter(job => {
       const matchSearch = !searchQuery || job.posisi.toLowerCase().includes(searchQuery.toLowerCase()) || job.perusahaan?.nama_perusahaan.toLowerCase().includes(searchQuery.toLowerCase());
       const matchProvince = selectedProvinces.length === 0 || selectedProvinces.includes(job.perusahaan?.nama_provinsi);
+      const matchKabupaten = selectedKabupatens.length === 0 || selectedKabupatens.includes(job.perusahaan?.nama_kabupaten);
       const matchProdi = selectedProdis.length === 0 || parseProdi(job.program_studi).some(p => selectedProdis.includes(p.title));
       const matchCompany = selectedCompanies.length === 0 || selectedCompanies.includes(job.perusahaan?.nama_perusahaan);
       const matchBookmark = activeTab === 'all' || bookmarkedJobs.includes(job.id_posisi);
-      return matchSearch && matchProvince && matchProdi && matchCompany && matchBookmark;
+      return matchSearch && matchProvince && matchKabupaten && matchProdi && matchCompany && matchBookmark;
     });
 
     if (sortBy === 'newest') {
@@ -241,7 +269,41 @@ const MagangHub = () => {
     }
 
     return jobs;
-  }, [allJobs, searchQuery, selectedProvinces, selectedProdis, selectedCompanies, sortBy, activeTab, bookmarkedJobs]);
+  }, [allJobs, searchQuery, selectedProvinces, selectedKabupatens, selectedProdis, selectedCompanies, sortBy, activeTab, bookmarkedJobs]);
+
+  const handleKeyDown = (e, filterType) => {
+    const lists = {
+      province: filteredProvinces,
+      kabupaten: filteredKabupatens,
+      company: filteredCompanies,
+      prodi: filteredProdi,
+    };
+    const handlers = {
+      province: handleProvinceSelect,
+      kabupaten: handleKabupatenSelect,
+      company: handleCompanySelect,
+      prodi: handleProdiSelect,
+    };
+  
+    const items = lists[filterType];
+    const handler = handlers[filterType];
+  
+    if (!items || items.length === 0) return;
+  
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev + 1) % items.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev - 1 + items.length) % items.length);
+    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+      e.preventDefault();
+      handler(items[highlightedIndex]);
+      setHighlightedIndex(-1);
+    }
+  };
+  
+  useEffect(() => { setHighlightedIndex(-1); }, [showProvinceDropdown, showKabupatenDropdown, showCompanyDropdown, showProdiDropdown]);
 
   const paginatedJobs = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -364,19 +426,22 @@ const MagangHub = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
               <div className="relative province-filter">
                 <label className="block text-sm font-medium mb-2">Provinsi</label>
                 <input type="text" placeholder="Cari provinsi..." value={provinceSearch}
                   onChange={(e) => { setProvinceSearch(e.target.value); setShowProvinceDropdown(true); }}
-                  onFocus={() => setShowProvinceDropdown(true)}
+                  onFocus={() => { setShowProvinceDropdown(true); setHighlightedIndex(-1); }}
+                  onKeyDown={(e) => handleKeyDown(e, 'province')}
                   className={`w-full p-3 rounded-lg ${inputBg} border ${borderColor} outline-none`}
                 />
                 {showProvinceDropdown && filteredProvinces.length > 0 && (
                   <div className={`absolute z-20 w-full mt-1 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-60 overflow-y-auto`}>
-                    {filteredProvinces.map(prov => (
+                    {filteredProvinces.map((prov, index) => (
                       <button key={prov} onClick={() => handleProvinceSelect(prov)}
-                        className={`w-full text-left px-4 py-2 hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${selectedProvinces.includes(prov) ? 'bg-blue-100 text-blue-700 font-semibold' : ''}`}
+                        className={`w-full text-left px-4 py-2 ${
+                            index === highlightedIndex ? (darkMode ? 'bg-gray-600' : 'bg-blue-100') : ''
+                            } hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${selectedProvinces.includes(prov) ? 'bg-blue-100 text-blue-700 font-semibold' : ''}`}
                       >{prov}</button>
                     ))}
                   </div>
@@ -391,18 +456,51 @@ const MagangHub = () => {
                 </div>
               </div>
 
+              <div className="relative kabupaten-filter">
+                <label className="block text-sm font-medium mb-2">Kabupaten/Kota</label>
+                <input type="text" placeholder="Cari kabupaten..." value={kabupatenSearch}
+                  onChange={(e) => { setKabupatenSearch(e.target.value); setShowKabupatenDropdown(true); }}
+                  onFocus={() => { setShowKabupatenDropdown(true); setHighlightedIndex(-1); }}
+                  onKeyDown={(e) => handleKeyDown(e, 'kabupaten')}
+                  className={`w-full p-3 rounded-lg ${inputBg} border ${borderColor} outline-none`}
+                  disabled={availableKabupatens.length === 0}
+                />
+                {showKabupatenDropdown && filteredKabupatens.length > 0 && (
+                  <div className={`absolute z-20 w-full mt-1 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-60 overflow-y-auto`}>
+                    {filteredKabupatens.map((kab, index) => (
+                      <button key={kab} onClick={() => handleKabupatenSelect(kab)}
+                        className={`w-full text-left px-4 py-2 ${
+                            index === highlightedIndex ? (darkMode ? 'bg-gray-600' : 'bg-blue-100') : ''
+                            } hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${selectedKabupatens.includes(kab) ? 'bg-blue-100 text-blue-700 font-semibold' : ''}`}
+                      >{kab}</button>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedKabupatens.map(kab => (
+                    <span key={kab} className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                      {kab}
+                      <button onClick={() => handleKabupatenSelect(kab)} className="hover:bg-blue-200 rounded-full p-0.5"><X className="w-3 h-3" /></button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
               <div className="relative company-filter">
                 <label className="block text-sm font-medium mb-2">Perusahaan</label>
                 <input type="text" placeholder="Cari perusahaan..." value={companySearch}
                   onChange={(e) => { setCompanySearch(e.target.value); setShowCompanyDropdown(true); }}
-                  onFocus={() => setShowCompanyDropdown(true)}
+                  onFocus={() => { setShowCompanyDropdown(true); setHighlightedIndex(-1); }}
+                  onKeyDown={(e) => handleKeyDown(e, 'company')}
                   className={`w-full p-3 rounded-lg ${inputBg} border ${borderColor} outline-none`}
                 />
                 {showCompanyDropdown && filteredCompanies.length > 0 && (
                   <div className={`absolute z-20 w-full mt-1 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-60 overflow-y-auto`}>
-                    {filteredCompanies.map(comp => (
+                    {filteredCompanies.map((comp, index) => (
                       <button key={comp} onClick={() => handleCompanySelect(comp)}
-                        className={`w-full text-left px-4 py-2 hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${selectedCompanies.includes(comp) ? 'bg-blue-100 text-blue-700 font-semibold' : ''}`}
+                        className={`w-full text-left px-4 py-2 ${
+                            index === highlightedIndex ? (darkMode ? 'bg-gray-600' : 'bg-blue-100') : ''
+                            } hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${selectedCompanies.includes(comp) ? 'bg-blue-100 text-blue-700 font-semibold' : ''}`}
                       >{comp}</button>
                     ))}
                   </div>
@@ -421,14 +519,17 @@ const MagangHub = () => {
                 <label className="block text-sm font-medium mb-2">Program Studi</label>
                 <input type="text" placeholder="Cari program studi..." value={prodiSearch}
                   onChange={(e) => { setProdiSearch(e.target.value); setShowProdiDropdown(true); }}
-                  onFocus={() => setShowProdiDropdown(true)}
+                  onFocus={() => { setShowProdiDropdown(true); setHighlightedIndex(-1); }}
+                  onKeyDown={(e) => handleKeyDown(e, 'prodi')}
                   className={`w-full p-3 rounded-lg ${inputBg} border ${borderColor} outline-none`}
                 />
                 {showProdiDropdown && filteredProdi.length > 0 && (
                   <div className={`absolute z-20 w-full mt-1 ${cardBg} border ${borderColor} rounded-lg shadow-lg max-h-60 overflow-y-auto`}>
-                    {filteredProdi.map(prodi => (
+                    {filteredProdi.map((prodi, index) => (
                       <button key={prodi} onClick={() => handleProdiSelect(prodi)}
-                        className={`w-full text-left px-4 py-2 hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${selectedProdis.includes(prodi) ? 'bg-blue-100 text-blue-700 font-semibold' : ''}`}
+                        className={`w-full text-left px-4 py-2 ${
+                            index === highlightedIndex ? (darkMode ? 'bg-gray-600' : 'bg-blue-100') : ''
+                            } hover:bg-blue-50 ${darkMode ? 'hover:bg-gray-700' : ''} ${selectedProdis.includes(prodi) ? 'bg-blue-100 text-blue-700 font-semibold' : ''}`}
                       >{prodi}</button>
                     ))}
                   </div>
