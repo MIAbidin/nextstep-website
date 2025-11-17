@@ -1,5 +1,5 @@
 export async function GET() {
-  const BASE_URL = "https://maganghub.kemnaker.go.id/be/v1/api/list/vacancies-aktif";
+  const BASE_URL = "https://maganghub.kemnaker.go.id/be/v1/api/list/vacancies";
   const ACCESS_TOKEN = process.env.ACCESS_TOKEN;
 
   if (!ACCESS_TOKEN) {
